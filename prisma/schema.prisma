@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  password  String
+  name      String?
+  orders    Order[]
+}
+
+model Product {
+  id                Int                @id @default(autoincrement())
+  name              String
+  description       String?            // Detailed description for single product page
+  archiveText       String?            // Text for list page
+  price             Float
+  quantity          Int
+  archiveImage      String?            // URL for the archive image on list page
+  mainImage         String?            // URL for the main image on single product page
+  gallery           Image[]            // Relation to gallery images
+  categories        Category[]         @relation("ProductToCategory")
+  attributes        ProductAttribute[] 
+  orderItems        OrderItem[]        // Reverse relation for OrderItems
+}
+model Image {
+  id        Int     @id @default(autoincrement())
+  url       String
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model Order {
+  id         Int       @id @default(autoincrement())
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  userId     Int
+  user       User      @relation(fields: [userId], references: [id])
+  items      OrderItem[]
+  total      Float
+  status     String
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
+}
+
+model Category {
+  id             Int        @id @default(autoincrement())
+  name           String     @unique
+  parentId       Int?       // This should be nullable to allow top-level categories
+  parent         Category?  @relation("ParentChild", fields: [parentId], references: [id])
+  subcategories  Category[] @relation("ParentChild")
+  products       Product[]  @relation("ProductToCategory")
+}
+
+
+
+model Attribute {
+  id        Int                @id @default(autoincrement())
+  name      String
+  values    AttributeValue[]   @relation("AttributeToAttributeValue")
+}
+
+model AttributeValue {
+  id          Int              @id @default(autoincrement())
+  attributeId Int
+  value       String
+  attribute   Attribute        @relation(fields: [attributeId], references: [id], name: "AttributeToAttributeValue")
+  products    ProductAttribute[]
+}
+
+model ProductAttribute {
+  productId  Int
+  valueId    Int
+  product    Product @relation(fields: [productId], references: [id])
+  value      AttributeValue @relation(fields: [valueId], references: [id])
+  @@id([productId, valueId])
+}
